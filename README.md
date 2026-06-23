@@ -97,7 +97,7 @@ python host/speak.py --host <StackChan的IP> "你好世界"
 |------|------|------|
 | `/` | GET | 控制面板（HTML） |
 | `/face?expr=<表情>` | GET | 设置表情：`neutral`、`happy`、`sad`、`angry`、`sleepy`、`doubt`、`love`、`eyeroll` |
-| `/servo?yaw=N&pitch=N&speed=N` | GET | 控制舵机。Yaw: -1280~1280，Pitch: 0~900，Speed: 0~1000 |
+| `/servo?yaw=N&pitch=N&speed=N` | GET | 控制舵机。Yaw: -1280 到 1280，Pitch: 0 到 900，Speed: 0 到 1000 |
 | `/camera` | GET | 拍照，返回 JPEG（320x240） |
 | `/status` | GET | 设备状态（电池、舵机位置、WiFi信号、运行时间） |
 | `/home` | GET | 舵机回到初始位置 |
