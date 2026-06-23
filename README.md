@@ -5,17 +5,19 @@ Turn your [StackChan](https://github.com/stack-chan/stack-chan) into a WiFi-cont
 ## Architecture
 
 ```
-Host Computer (Mac/PC/RPi)          StackChan (ESP32-S3)
-┌─────────────────────┐             ┌──────────────────┐
-│  Your AI/App/Script  │── HTTP ──▶│  HTTP API Server  │
-│                     │            │                  │
-│  find_face.py       │◀── JPEG ──│  Camera (GC0308)  │
-│  (MediaPipe +       │── servo ──▶│  Servos (yaw/pitch)│
-│   InsightFace)      │── audio ──▶│  Speaker          │
-│                     │◀── audio ──│  Microphone       │
-│  face_tracker.py    │── expr  ──▶│  Avatar Display   │
-│  speak.py / etc.    │            │  Touch Sensors    │
-└─────────────────────┘             └──────────────────┘
+Host Computer (Mac/PC/RPi)              StackChan (ESP32-S3)
+┌───────────────────────┐               ┌────────────────────┐
+│                       │               │                    │
+│  Your AI/App/Script   │─── HTTP ────▶ │  HTTP API Server   │
+│                       │               │                    │
+│  find_face.py         │◀── JPEG ──── │  Camera (GC0308)   │
+│  (MediaPipe +         │─── servo ──▶  │  Servos (yaw/pitch)│
+│   InsightFace)        │─── audio ──▶  │  Speaker           │
+│                       │◀── audio ─── │  Microphone        │
+│  face_tracker.py      │─── expr ───▶  │  Avatar Display    │
+│  speak.py             │               │  Touch Sensors     │
+│                       │               │                    │
+└───────────────────────┘               └────────────────────┘
 ```
 
 **Why this approach?** The ESP32 can't run ML models, but it has great hardware (camera, servos, mic, speaker, touch). By exposing everything over HTTP, you can use any language/framework/AI on your host computer to control it.
