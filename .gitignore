@@ -1,0 +1,6 @@
+firmware/config.h
+*.pkl
+*.jpg
+*.wav
+__pycache__/
+.DS_Store

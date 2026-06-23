@@ -1,0 +1,17 @@
+// Copy this file to config.h and fill in your values.
+
+#define WIFI_SSID     "YourWiFi"
+#define WIFI_PASSWORD "YourPassword"
+
+// StackChan's static IP on your LAN (avoids DHCP drift)
+#define STATIC_IP     192, 168, 0, 162
+#define GATEWAY_IP    192, 168, 0, 1
+#define SUBNET_MASK   255, 255, 255, 0
+#define DNS_IP        192, 168, 0, 1
+
+// Host computer IP (receives touch callbacks)
+// Set to your Mac/PC's LAN IP
+#define CALLBACK_HOST "192.168.0.186"
+
+// mDNS hostname (access via http://stackchan.local)
+#define MDNS_NAME     "stackchan"
