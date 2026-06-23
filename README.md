@@ -1,119 +1,134 @@
 # StackChan HTTP API
 
-Turn your [StackChan](https://github.com/stack-chan/stack-chan) into a WiFi-controlled robot with a simple HTTP API. All AI/ML processing runs on a host computer — the ESP32 is just a "dumb terminal" that handles hardware.
+把 [StackChan](https://github.com/stack-chan/stack-chan) 变成一个通过 WiFi HTTP 接口控制的机器人。所有 AI/ML 计算在主机电脑上运行——ESP32 只负责硬件控制。
 
-## Architecture
+## 架构
 
 ```
-Host Computer (Mac/PC/RPi)              StackChan (ESP32-S3)
+主机电脑 (Mac/PC/树莓派)                StackChan (ESP32-S3)
 ┌───────────────────────┐               ┌────────────────────┐
 │                       │               │                    │
-│  Your AI/App/Script   │─── HTTP ────▶ │  HTTP API Server   │
+│  你的 AI/应用/脚本     │─── HTTP ────▶ │  HTTP API 服务器    │
 │                       │               │                    │
-│  find_face.py         │◀── JPEG ──── │  Camera (GC0308)   │
-│  (MediaPipe +         │─── servo ──▶  │  Servos (yaw/pitch)│
-│   InsightFace)        │─── audio ──▶  │  Speaker           │
-│                       │◀── audio ─── │  Microphone        │
-│  face_tracker.py      │─── expr ───▶  │  Avatar Display    │
-│  speak.py             │               │  Touch Sensors     │
+│  find_face.py         │◀── JPEG ──── │  摄像头 (GC0308)    │
+│  (MediaPipe +         │─── 舵机 ───▶  │  舵机 (水平/俯仰)   │
+│   InsightFace)        │─── 音频 ───▶  │  扬声器             │
+│                       │◀── 音频 ──── │  麦克风             │
+│  face_tracker.py      │─── 表情 ───▶  │  表情显示屏         │
+│  speak.py             │               │  触摸传感器         │
 │                       │               │                    │
 └───────────────────────┘               └────────────────────┘
 ```
 
-**Why this approach?** The ESP32 can't run ML models, but it has great hardware (camera, servos, mic, speaker, touch). By exposing everything over HTTP, you can use any language/framework/AI on your host computer to control it.
+**为什么这样设计？** ESP32 跑不了 ML 模型，但硬件很好（摄像头、舵机、麦克风、扬声器、触摸）。通过 HTTP 暴露所有硬件能力，你可以在主机上用任何语言/框架/AI 来控制它。
 
-## Hardware
+## 硬件
 
-- M5Stack StackChan Kit (CoreS3 ESP32-S3)
-  - GC0308 camera, dual microphone, speaker
-  - 2x servos (horizontal ±128°, vertical 0-90°)
-  - Touch sensors (3-zone capacitive on top)
-  - 2.0" color display (320x240)
+- M5Stack StackChan 套件（CoreS3 ESP32-S3）
+  - GC0308 摄像头、双麦克风、扬声器
+  - 2个舵机（水平 ±128°、垂直 0-90°）
+  - 触摸传感器（头顶3区电容触摸）
+  - 2.0寸彩色显示屏（320x240）
 
-## Quick Start
+## 快速开始
 
-### 1. Flash the Firmware
+### 1. 烧录固件
 
 ```bash
-# Install arduino-cli and M5Stack board support
+# 安装 arduino-cli 和 M5Stack 板支持
 brew install arduino-cli   # macOS
 arduino-cli core install m5stack:esp32
 
-# Configure WiFi
+# 配置 WiFi
 cp firmware/config.h.example firmware/config.h
-# Edit config.h with your WiFi credentials and IP settings
+# 编辑 config.h，填入你的 WiFi 名称、密码和 IP 设置
 
-# Compile and upload
+# 编译烧录
 arduino-cli compile --fqbn m5stack:esp32:m5stack_cores3 firmware/
 arduino-cli upload --fqbn m5stack:esp32:m5stack_cores3 --port /dev/cu.usbmodem* firmware/
 ```
 
-### 2. Verify
+### 2. 验证
 
-Open `http://<stackchan-ip>/` in your browser. You should see the control panel.
+浏览器打开 `http://<StackChan的IP>/`，能看到控制面板就成功了。
 
-### 3. Install Host Dependencies
+### 3. 安装主机依赖
 
 ```bash
 pip install opencv-python mediapipe numpy
 
-# Optional: for face identity verification
+# 可选：人脸身份识别
 pip install insightface onnxruntime
+
+# 可选：语音合成
+pip install edge-tts        # 免费TTS
+pip install requests        # ElevenLabs TTS 需要
 ```
 
-### 4. Find a Face
+### 4. 人脸查找
 
 ```bash
-# Detect any face
-python host/find_face.py --host <stackchan-ip>
+# 检测任意人脸
+python host/find_face.py --host <StackChan的IP>
 
-# With identity verification
-python host/register_face.py my_photo1.jpg my_photo2.jpg -o my_face.pkl
-python host/find_face.py --host <stackchan-ip> --face-db my_face.pkl
+# 带身份识别（只找特定的人）
+python host/register_face.py 照片1.jpg 照片2.jpg -o my_face.pkl
+python host/find_face.py --host <StackChan的IP> --face-db my_face.pkl
 
-# Continuous tracking
-python host/face_tracker.py --host <stackchan-ip>
+# 持续人脸追踪
+python host/face_tracker.py --host <StackChan的IP>
 ```
 
-## HTTP API Reference
+### 5. 语音合成
 
-All endpoints return JSON (except `/camera` which returns JPEG).
+```bash
+# 使用免费的 edge-tts
+python host/speak.py --edge --host <StackChan的IP> "你好世界"
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Control panel (HTML) |
-| `/face?expr=<expr>` | GET | Set expression: `neutral`, `happy`, `sad`, `angry`, `sleepy`, `doubt`, `love`, `eyeroll` |
-| `/servo?yaw=N&pitch=N&speed=N` | GET | Move servos. Yaw: -1280 to 1280. Pitch: 0 to 900. Speed: 0 to 1000 |
-| `/camera` | GET | Capture JPEG photo (320x240) |
-| `/status` | GET | Device status (battery, servo position, WiFi RSSI, uptime) |
-| `/home` | GET | Center servos to home position |
-| `/touch` | GET | Touch sensor readings (front, middle, back) |
-| `/record?seconds=N` | GET | Record audio, returns WAV. Optional: `vad=1` for voice activity detection, `led=0` to hide LED |
-| `/stream?port=N` | GET | Stream raw PCM (16kHz mono int16) to host TCP port. Host disconnect = stop |
-| `/play?url=<url>` | GET | Stream and play WAV from URL (max 2MB ≈ 62s). Supports lip sync |
-| `/speech?text=<text>` | GET | Display subtitle text. Optional: `dur=<ms>` for auto-paging sync |
-| `/volume` | GET | Mic volume level (RMS + peak) |
+# 使用 ElevenLabs（需要 API key，在 .env 文件中配置）
+python host/speak.py --host <StackChan的IP> "你好世界"
+```
 
-## Face Detection: How It Works
+## HTTP API 接口
 
-`find_face.py` implements a scan-detect-center pipeline:
+所有接口返回 JSON（`/camera` 返回 JPEG 图片）。
 
-1. **Check current position** — take 2 frames (double confirmation to avoid false positives)
-2. **If no face** — scan 12 preset servo angles, checking each position
-3. **Identity verification** (optional) — compare detected face against a stored embedding using InsightFace ArcFace
-4. **Center** — proportional controller adjusts servos to center the face in frame
-5. **Output** — JSON result with confidence, position, similarity score
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/` | GET | 控制面板（HTML） |
+| `/face?expr=<表情>` | GET | 设置表情：`neutral`、`happy`、`sad`、`angry`、`sleepy`、`doubt`、`love`、`eyeroll` |
+| `/servo?yaw=N&pitch=N&speed=N` | GET | 控制舵机。Yaw: -1280~1280，Pitch: 0~900，Speed: 0~1000 |
+| `/camera` | GET | 拍照，返回 JPEG（320x240） |
+| `/status` | GET | 设备状态（电池、舵机位置、WiFi信号、运行时间） |
+| `/home` | GET | 舵机回到初始位置 |
+| `/touch` | GET | 触摸传感器读数（前、中、后） |
+| `/record?seconds=N` | GET | 录音，返回 WAV。可选：`vad=1` 语音活动检测，`led=0` 关LED |
+| `/stream?port=N` | GET | 把麦克风 PCM 流推到主机 TCP 端口（16kHz mono int16）。主机断开即停 |
+| `/play?url=<url>` | GET | 从 URL 拉取并播放 WAV（最大 2MB ≈ 62秒），支持唇形同步 |
+| `/speech?text=<文字>` | GET | 显示字幕。可选：`dur=<毫秒>` 配合语音自动翻页 |
+| `/volume` | GET | 麦克风音量（RMS + 峰值） |
 
-`face_tracker.py` runs continuously with two modes:
-- **Lazy** (default): checks every 3-10 seconds, only moves on large displacement. Quiet and unobtrusive.
-- **Active**: checks every 0.3 seconds, tight tracking. Responsive but servos are noisy.
+## 人脸检测原理
 
-## Notes
+`find_face.py` 的工作流程：
 
-- **GC0308 camera**: No hardware JPEG encoder. Uses RGB565 → software JPEG conversion. Quality is low (0.3MP) but sufficient for face detection.
-- **Mic and speaker share I2S bus**: Half-duplex — cannot record and play simultaneously.
-- **macOS users**: Python `socket` may get `Errno 65` connecting to LAN devices. The included `curl_session.py` works around this by using `/usr/bin/curl` subprocess.
-- **WiFi sleep is disabled** in the firmware to avoid intermittent connection drops on first request after idle.
+1. **检查当前朝向** —— 拍两帧双重确认（防误检）
+2. **没找到** —— 扫描 12 个预设舵机角度，逐个拍照检测
+3. **身份验证**（可选） —— 用 InsightFace ArcFace 将检测到的人脸与预存的 embedding 做余弦相似度比对
+4. **居中** —— 比例控制器微调舵机，把人脸放到画面中央
+5. **输出** —— JSON 结果，包含置信度、位置、相似度
+
+`face_tracker.py` 持续运行，两种模式：
+- **Lazy**（默认）：每 3-10 秒看一眼，大幅移动才转头。安静不扰人。
+- **Active**：每 0.3 秒检测一次，紧跟人脸。响应快但舵机声音大。
+
+## 注意事项
+
+- **GC0308 摄像头**：没有硬件 JPEG 编码器，用 RGB565 → 软件 JPEG 转换。画质低（0.3MP）但做人脸检测够用。
+- **麦克风和扬声器共用 I2S 总线**：半双工，不能同时录音和播放。
+- **macOS 用户**：Python `socket` 连局域网设备可能报 `Errno 65`。项目里的 `curl_session.py` 通过 curl 子进程绕过了这个问题。
+- **WiFi 睡眠已关闭**：固件里禁用了 WiFi 省电模式，避免空闲后首次连接超时。
+- **WAV 转换**：macOS 用 `afconvert`，Linux 需要安装 `ffmpeg`。
 
 ## License
 
