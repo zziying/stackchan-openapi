@@ -4,20 +4,29 @@
 
 ## 架构
 
-```
-主机电脑 (Mac/PC/树莓派)                StackChan (ESP32-S3)
-┌───────────────────────┐               ┌────────────────────┐
-│                       │               │                    │
-│  你的 AI/应用/脚本     │─── HTTP ────▶ │  HTTP API 服务器    │
-│                       │               │                    │
-│  find_face.py         │◀── JPEG ──── │  摄像头 (GC0308)    │
-│  (MediaPipe +         │─── 舵机 ───▶  │  舵机 (水平/俯仰)   │
-│   InsightFace)        │─── 音频 ───▶  │  扬声器             │
-│                       │◀── 音频 ──── │  麦克风             │
-│  face_tracker.py      │─── 表情 ───▶  │  表情显示屏         │
-│  speak.py             │               │  触摸传感器         │
-│                       │               │                    │
-└───────────────────────┘               └────────────────────┘
+```mermaid
+graph LR
+    subgraph host [主机电脑 Mac/PC/树莓派]
+        A[你的 AI / 应用 / 脚本]
+        B["find_face.py<br/>(MediaPipe + InsightFace)"]
+        C[face_tracker.py]
+        D[speak.py]
+    end
+    subgraph stackchan [StackChan ESP32-S3]
+        E[HTTP API 服务器]
+        F[摄像头 GC0308]
+        G[舵机]
+        H[扬声器]
+        I[麦克风]
+        J[表情显示屏]
+        K[触摸传感器]
+    end
+    A -->|HTTP| E
+    B -->|舵机控制| G
+    F -->|JPEG| B
+    D -->|音频| H
+    I -->|音频| A
+    A -->|表情| J
 ```
 
 **为什么这样设计？** ESP32 跑不了 ML 模型，但硬件很好（摄像头、舵机、麦克风、扬声器、触摸）。通过 HTTP 暴露所有硬件能力，你可以在主机上用任何语言/框架/AI 来控制它。
