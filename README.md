@@ -130,6 +130,10 @@ python host/speak.py --host <StackChan的IP> "你好世界"
 - **WiFi 睡眠已关闭**：固件里禁用了 WiFi 省电模式，避免空闲后首次连接超时。
 - **WAV 转换**：macOS 用 `afconvert`，Linux 需要安装 `ffmpeg`。
 
+## 接入你的 AI
+
+所有 Python 脚本都是独立的命令行工具，不依赖任何特定 AI 框架。想接 Claude Code 的话，把脚本包成 MCP 工具就行；接别的 AI 也一样，发 HTTP 请求就能控制 StackChan 的一切。
+
 ## License
 
 MIT
